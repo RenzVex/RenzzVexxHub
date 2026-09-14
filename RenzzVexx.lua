@@ -1,34 +1,25 @@
 -- =======================================================================
---  RenzVex Steal An Egg - WindUI Ultra Safe Edition (Anti-Fetch Fix)
+--  RenzVex Steal An Egg - Fluent UI Edition (Bypass Anti-Cheat)
 -- =======================================================================
 
--- 1. LOAD STABLE UNIVERSAL UI LIBRARY
-local WindUI = nil
-local SuksesLoadUI = pcall(function()
-    return loadstring(game:HttpGet("https://tree-hub.xyz"))()
-end)
+-- 1. LOAD FLUENT UI LIBRARY
+local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
 
-if not SuksesLoadUI or not WindUI then
-    -- Link alternatif jika domain di atas terblokir
-    WindUI = loadstring(game:HttpGet("https://githubusercontent.com"))()
-end
-
--- 2. CREATE WINDOW UTAMA (TEMA UNGU GALAXY)
-local Window = WindUI:CreateWindow({
+-- 2. CREATE WINDOW UTAMA
+local Window = Fluent:CreateWindow({
     Title = "RenzVex Steal An Egg",
-    Icon = "rbxassetid://107778070777162",
-    Author = "by RenzVex",
-    Folder = "RenzVexStealAnEgg",
-    Theme = "Dark", 
-    Accent = Color3.fromRGB(138, 43, 226), -- Ungu Galaxy Cerah
+    SubTitle = "by RenzVex",
+    TabWidth = 160,
+    Size = UDim2.fromOffset(580, 460),
+    Acrylic = false, -- Nonaktifkan blur jika mengalami lag/crash
+    Theme = "Dark",
+    MinimizeKey = Enum.KeyCode.LeftControl
 })
 
-if Window.Main then
-    Window.Main.BackgroundColor3 = Color3.fromRGB(14, 8, 28) -- Deep Space Background
-end
-
-local TabMain = Window:CreateTab({ Title = "Main Farm", Icon = "home" })
-local TabFilters = Window:CreateTab({ Title = "Filter & Areas", Icon = "settings" })
+local Tabs = {
+    Main = Window:AddTab({ Title = "Main Farm", Icon = "home" }),
+    Filters = Window:AddTab({ Title = "Filter & Areas", Icon = "settings" })
+}
 
 -- =======================================================================
 -- INITIALIZATION GAME SYSTEMS
@@ -58,7 +49,7 @@ local RarityPilihan = {
     ["Cosmic"]      = true,
     ["Secret"]      = true,
     ["Eternal"]     = true,
-    ["Divine"]      = true   
+    ["Divine"]      = true
 }
 
 -- 12 BIOME LENGKAP
@@ -74,7 +65,7 @@ local MapPilihan = {
     ["Cosmic"]          = true,
     ["Cherry Blossom"]  = true,
     ["Titan Temple"]    = true,
-    ["AngelDemonZone"]  = true  
+    ["AngelDemonZone"]  = true
 }
 
 -- Fungsi Deteksi Base Player
@@ -83,14 +74,13 @@ local function DapatkanBaseSaya()
     if WorkspaceBases then
         local BaseSaya = WorkspaceBases:FindFirstChild(Player.Name)
         if BaseSaya then
-            -- MENCARI GERBANG FISIK DEPOSIT (Bukan menembak Remote)
             return BaseSaya:FindFirstChild("DepositPart") or BaseSaya:FindFirstChild("EggPen") or BaseSaya:FindFirstChild("Part") or BaseSaya
         end
     end
     return nil
 end
 
--- Fungsi Lari Cepat Smooth Tween (Aman Dari Deteksi Jarak)
+-- Fungsi Lari Cepat Smooth Tween
 local function PindahHalus(TargetCFrame)
     if not RootPart then return end
     local Jarak = (RootPart.Position - TargetCFrame.Position).Magnitude
@@ -102,44 +92,79 @@ local function PindahHalus(TargetCFrame)
 end
 
 -- =======================================================================
--- VISUAL UI CONTROLS
+-- CONTROLS (MAIN TAB)
 -- =======================================================================
-TabMain:CreateParagraph({ Title = "🌌 RenzVex Perfect V4", Desc = "Bypass Anti-Cheat & Perbaikan Error FetchWearBestStatus." })
-
-TabMain:CreateToggle({
-    Title = "Auto Steal & Deposit",
-    Desc = "Mencari telur pilihan, lari via Tween, lalu amankan ke base sebelum dikejar Bos.",
-    Default = false,
-    Callback = function(Value) _G.AutoFarmTelur = Value end
+Tabs.Main:AddParagraph({ 
+    Title = "🌌 RenzVex Perfect V4", 
+    Content = "Bypass Anti-Cheat & Perbaikan Error FetchWearBestStatus." 
 })
 
-TabMain:CreateToggle({
-    Title = "Auto Treadmill (Smart Grind)",
-    Desc = "Otomatis latihan Speed di base jika tidak sedang membawa telur target.",
-    Default = false,
-    Callback = function(Value) _G.AutoTreadmillPintar = Value end
+local ToggleFarm = Tabs.Main:AddToggle("AutoFarmToggle", {
+    Title = "Auto Steal & Deposit", 
+    Description = "Mencari telur pilihan, lari via Tween, lalu amankan ke base.",
+    Default = false 
 })
+ToggleFarm:OnChanged(function(Value)
+    _G.AutoFarmTelur = Value
+end)
 
-TabMain:CreateSlider({
+local ToggleTreadmill = Tabs.Main:AddToggle("AutoTreadmillToggle", {
+    Title = "Auto Treadmill (Smart Grind)", 
+    Description = "Otomatis latihan Speed di base jika tidak sedang membawa telur target.",
+    Default = false 
+})
+ToggleTreadmill:OnChanged(function(Value)
+    _G.AutoTreadmillPintar = Value
+end)
+
+local SpeedSlider = Tabs.Main:AddSlider("TweenSpeedSlider", {
     Title = "⚡ Tween Movement Speed",
-    Min = 50, Max = 300, Default = _G.TweenSpeed,
-    Callback = function(Value) _G.TweenSpeed = Value end
+    Description = "Atur kecepatan lari karakter",
+    Default = _G.TweenSpeed,
+    Min = 50,
+    Max = 300,
+    Rounding = 0,
+    Callback = function(Value)
+        _G.TweenSpeed = Value
+    end
 })
 
--- Menghasilkan Filter Toggles secara Berurutan
-TabFilters:CreateParagraph({ Title = "✨ Filter Kelangkaan Telur (10 Tier)", Desc = "Centang kelangkaan telur yang ingin dicuri karaktermu." })
-for RarityName, _ in pairs(RarityPilihan) do
-    TabFilters:CreateToggle({ Title = "Ambil " .. RarityName, Default = RarityPilihan[RarityName], Callback = function(Value) RarityPilihan[RarityName] = Value end })
+-- =======================================================================
+-- CONTROLS (FILTER TAB)
+-- =======================================================================
+Tabs.Filters:AddParagraph({ 
+    Title = "✨ Filter Kelangkaan Telur", 
+    Content = "Centang kelangkaan telur yang ingin dicuri." 
+})
+
+for RarityName, DefaultState in pairs(RarityPilihan) do
+    local RarityToggle = Tabs.Filters:AddToggle("Rarity_" .. RarityName, {
+        Title = "Ambil " .. RarityName,
+        Default = DefaultState
+    })
+    RarityToggle:OnChanged(function(Value)
+        RarityPilihan[RarityName] = Value
+    end)
 end
 
-TabFilters:CreateParagraph({ Title = "🗺️ Filter Pemindaian Map (12 Biome)", Desc = "Aktifkan map berburu telur yang kamu inginkan." })
-for MapName, _ in pairs(MapPilihan) do
+Tabs.Filters:AddParagraph({ 
+    Title = "🗺️ Filter Pemindaian Map", 
+    Content = "Aktifkan map berburu telur yang kamu inginkan." 
+})
+
+for MapName, DefaultState in pairs(MapPilihan) do
     local LabelMenu = (MapName == "AngelDemonZone") and "Scan di Map: Angels & Demons" or "Scan di Map: " .. MapName
-    TabFilters:CreateToggle({ Title = LabelMenu, Default = MapPilihan[MapName], Callback = function(Value) MapPilihan[MapName] = Value end })
+    local MapToggle = Tabs.Filters:AddToggle("Map_" .. MapName, {
+        Title = LabelMenu,
+        Default = DefaultState
+    })
+    MapToggle:OnChanged(function(Value)
+        MapPilihan[MapName] = Value
+    end)
 end
 
 -- =======================================================================
--- BACKGROUND PROCESS (METODE BYPASS SENTUHAN FISIK)
+-- BACKGROUND PROCESS
 -- =======================================================================
 task.spawn(function()
     while true do
@@ -147,76 +172,72 @@ task.spawn(function()
         if _G.AutoFarmTelur and Networking then
             local AskCarryEvent = Networking:FindFirstChild("RF/EggWorld/AskFieldEggCarry")
             local AskDoffTreadmill = Networking:FindFirstChild("RF/Treadmill/AskDoff")
-            
-            local TargetBase = DapatkanBaseSaya()
-            local FolderMap = game.Workspace:FindFirstChild("EggWorld") or game.Workspace
-            
-            if AskCarryEvent then
-                for _, ObjekTelur in pairs(FolderMap:GetDescendants()) do
-                    if not _G.AutoFarmTelur then break end
-                    
-                    local AreaTelur = ObjekTelur:GetAttribute("AreaId") or ObjekTelur.Name
-                    local RarityTelur = ObjekTelur:GetAttribute("Rarity") or "Unknown"
-                    local EggUid = ObjekTelur:GetAttribute("Uid")
-                    local SlotKey = ObjekTelur:GetAttribute("FirstAreaSlotKey")
 
-                    -- Deteksi Dinamis Biome ke-12 (Angels / Demons)
-                    local MapDiizinkan = false
-                    if MapPilihan[AreaTelur] then
-                        MapDiizinkan = true
-                    elseif MapPilihan["AngelDemonZone"] and (string.match(AreaTelur, "Angel") or string.match(AreaTelur, "Demon")) then
-                        MapDiizinkan = true
-                    end
+            local TargetBase = DapatkanBaseSaya()  
+            local FolderMap = game.Workspace:FindFirstChild("EggWorld") or game.Workspace  
+              
+            if AskCarryEvent then  
+                for _, ObjekTelur in pairs(FolderMap:GetDescendants()) do  
+                    if not _G.AutoFarmTelur then break end  
+                      
+                    local AreaTelur = ObjekTelur:GetAttribute("AreaId") or ObjekTelur.Name  
+                    local RarityTelur = ObjekTelur:GetAttribute("Rarity") or "Unknown"  
+                    local EggUid = ObjekTelur:GetAttribute("Uid")  
+                    local SlotKey = ObjekTelur:GetAttribute("FirstAreaSlotKey")  
 
-                    -- Validasi Kelayakan Objek
-                    if MapDiizinkan and RarityPilihan[RarityTelur] and EggUid and ObjekTelur:IsA("BasePart") then
-                        if AskDoffTreadmill then pcall(function() AskDoffTreadmill:InvokeServer() end) end
-                        
-                        -- Lari ke tempat telur
-                        PindahHalus(ObjekTelur.CFrame)
-                        task.wait(0.2)
-                        
-                        local SuksesAmbil = nil
-                        pcall(function()
-                            SuksesAmbil = AskCarryEvent:InvokeServer({ FirstAreaSlotKey = SlotKey, Uid = EggUid })
-                        end)
-                        
-                        -- JIKA SUKSES MENGGENGGAM TELUR:
-                        if SuksesAmbil and TargetBase then
-                            print("🚨 Telur Didapat! Berlari mengamankan ke Base...")
-                            
-                            -- Langkah Aman: Lari ke Base secara fisik agar menyentuh area deposit
-                            PindahHalus(TargetBase.CFrame)
-                            
-                            -- Jeda 0.4 detik agar sistem game memproses masuknya telur secara natural via sentuhan fisik karakter
-                            task.wait(0.4) 
-                            break
-                        end
-                    end
-                end
-            end
-        end
+                    local MapDiizinkan = false  
+                    if MapPilihan[AreaTelur] then  
+                        MapDiizinkan = true  
+                    elseif MapPilihan["AngelDemonZone"] and (string.match(AreaTelur, "Angel") or string.match(AreaTelur, "Demon")) then  
+                        MapDiizinkan = true  
+                    end  
+
+                    if MapDiizinkan and RarityPilihan[RarityTelur] and EggUid and ObjekTelur:IsA("BasePart") then  
+                        if AskDoffTreadmill then pcall(function() AskDoffTreadmill:InvokeServer() end) end  
+                          
+                        PindahHalus(ObjekTelur.CFrame)  
+                        task.wait(0.2)  
+                          
+                        local SuksesAmbil = nil  
+                        pcall(function()  
+                            SuksesAmbil = AskCarryEvent:InvokeServer({ FirstAreaSlotKey = SlotKey, Uid = EggUid })  
+                        end)  
+                          
+                        if SuksesAmbil and TargetBase then  
+                            print("🚨 Telur Didapat! Berlari mengamankan ke Base...")  
+                            PindahHalus(TargetBase.CFrame)  
+                            task.wait(0.4)   
+                            break  
+                        end  
+                    end  
+                end  
+            end  
+        end  
     end
 end)
 
--- Loop Latihan Speed Bawaan Base
+-- Loop Treadmill
 task.spawn(function()
     while true do
         task.wait(1)
         if _G.AutoTreadmillPintar and Networking then
             local AskWearTreadmill = Networking:FindFirstChild("RF/Treadmill/AskWearStill")
             local AskDoffTreadmill = Networking:FindFirstChild("RF/Treadmill/AskDoff")
-            
-            if AskWearTreadmill and AskDoffTreadmill then
-                if _G.AutoFarmTelur == false or (not Character:FindFirstChild("EggCarried")) then 
-                    pcall(function() AskWearTreadmill:InvokeServer() end)
-                    task.wait(5)
-                    pcall(function() AskDoffTreadmill:InvokeServer() end)
-                    task.wait(1)
+
+            if AskWearTreadmill and AskDoffTreadmill then  
+                if _G.AutoFarmTelur == false or (not Character:FindFirstChild("EggCarried")) then   
+                    pcall(function() AskWearTreadmill:InvokeServer() end)  
+                    task.wait(5)  
+                    pcall(function() AskDoffTreadmill:InvokeServer() end)  
+                    task.wait(1)  
                 end
-            end
-        end
+            end  
+        end  
     end
 end)
 
-WindUI:Notify({ Title = "RenzVex Perfect Loaded!", Content = "Menggunakan metode Bypass Sentuhan Fisik Baru.", Duration = 5 })
+Fluent:Notify({
+    Title = "RenzVex Script",
+    Content = "Berhasil dimuat dengan Fluent UI!",
+    Duration = 5
+})
