@@ -1,15 +1,16 @@
 -- =======================================================================
---  RenzVex Steal An Egg - WindUI Ultimate Perfect Edition (Update 4)
+--  RenzVex Steal An Egg - WindUI Ultra Safe Edition (Anti-Fetch Fix)
 -- =======================================================================
 
--- 1. LOAD STABLE WINDUI LIBRARY
+-- 1. LOAD STABLE UNIVERSAL UI LIBRARY
 local WindUI = nil
 local SuksesLoadUI = pcall(function()
-    return loadstring(game:HttpGet("https://githubusercontent.com"))()
+    return loadstring(game:HttpGet("https://tree-hub.xyz"))()
 end)
 
 if not SuksesLoadUI or not WindUI then
-    WindUI = loadstring(game:HttpGet("https://tree-hub.xyz"))()
+    -- Link alternatif jika domain di atas terblokir
+    WindUI = loadstring(game:HttpGet("https://githubusercontent.com"))()
 end
 
 -- 2. CREATE WINDOW UTAMA (TEMA UNGU GALAXY)
@@ -19,7 +20,7 @@ local Window = WindUI:CreateWindow({
     Author = "by RenzVex",
     Folder = "RenzVexStealAnEgg",
     Theme = "Dark", 
-    Accent = Color3.fromRGB(138, 43, 226), -- Ungu Galaxy Neon
+    Accent = Color3.fromRGB(138, 43, 226), -- Ungu Galaxy Cerah
 })
 
 if Window.Main then
@@ -49,18 +50,18 @@ _G.TweenSpeed = 135
 -- 10 TIER RARITY RESMI LENGKAP
 local RarityPilihan = {
     ["Common"]      = false,
-    ["Uncommon"]    = false, -- Diperbaiki (Kini Tersedia)
+    ["Uncommon"]    = false,
     ["Rare"]        = false,
-    ["Epic"]        = false, -- Diperbaiki (Kini Tersedia)
+    ["Epic"]        = false,
     ["Legendary"]   = true,
     ["Mythic"]      = true,
     ["Cosmic"]      = true,
     ["Secret"]      = true,
     ["Eternal"]     = true,
-    ["Divine"]      = true   -- Tier Tertinggi Update 4
+    ["Divine"]      = true   
 }
 
--- 11 BIOME STATIS + 1 BIOME DINAMIS (ANGELS/DEMONS)
+-- 12 BIOME LENGKAP
 local MapPilihan = {
     ["Forest"]          = true,
     ["Lake"]            = true,
@@ -73,7 +74,7 @@ local MapPilihan = {
     ["Cosmic"]          = true,
     ["Cherry Blossom"]  = true,
     ["Titan Temple"]    = true,
-    ["AngelDemonZone"]  = true  -- Mengontrol Biome ke-12 (Angels & Demons secara global)
+    ["AngelDemonZone"]  = true  
 }
 
 -- Fungsi Deteksi Base Player
@@ -82,13 +83,14 @@ local function DapatkanBaseSaya()
     if WorkspaceBases then
         local BaseSaya = WorkspaceBases:FindFirstChild(Player.Name)
         if BaseSaya then
-            return BaseSaya:FindFirstChild("DepositPart") or BaseSaya:FindFirstChild("EggPen") or BaseSaya
+            -- MENCARI GERBANG FISIK DEPOSIT (Bukan menembak Remote)
+            return BaseSaya:FindFirstChild("DepositPart") or BaseSaya:FindFirstChild("EggPen") or BaseSaya:FindFirstChild("Part") or BaseSaya
         end
     end
     return nil
 end
 
--- Fungsi Lari Cepat Smooth Tween
+-- Fungsi Lari Cepat Smooth Tween (Aman Dari Deteksi Jarak)
 local function PindahHalus(TargetCFrame)
     if not RootPart then return end
     local Jarak = (RootPart.Position - TargetCFrame.Position).Magnitude
@@ -102,7 +104,7 @@ end
 -- =======================================================================
 -- VISUAL UI CONTROLS
 -- =======================================================================
-TabMain:CreateParagraph({ Title = "🌌 RenzVex Perfect V3", Desc = "Perbaikan penuh pada akurasi Rarity & Deteksi Dinamis Biome Angels/Demons." })
+TabMain:CreateParagraph({ Title = "🌌 RenzVex Perfect V4", Desc = "Bypass Anti-Cheat & Perbaikan Error FetchWearBestStatus." })
 
 TabMain:CreateToggle({
     Title = "Auto Steal & Deposit",
@@ -132,25 +134,24 @@ end
 
 TabFilters:CreateParagraph({ Title = "🗺️ Filter Pemindaian Map (12 Biome)", Desc = "Aktifkan map berburu telur yang kamu inginkan." })
 for MapName, _ in pairs(MapPilihan) do
-    local LabelMenu = (MapName == "AngelDemonZone") and "Scan di Map: Angels & Demons (Update 4)" or "Scan di Map: " .. MapName
+    local LabelMenu = (MapName == "AngelDemonZone") and "Scan di Map: Angels & Demons" or "Scan di Map: " .. MapName
     TabFilters:CreateToggle({ Title = LabelMenu, Default = MapPilihan[MapName], Callback = function(Value) MapPilihan[MapName] = Value end })
 end
 
 -- =======================================================================
--- BACKGROUND PROCESS (LOOP SEARCH UTAMA DENGAN DYNAMIC BYPASS)
+-- BACKGROUND PROCESS (METODE BYPASS SENTUHAN FISIK)
 -- =======================================================================
 task.spawn(function()
     while true do
         task.wait(0.5)
         if _G.AutoFarmTelur and Networking then
             local AskCarryEvent = Networking:FindFirstChild("RF/EggWorld/AskFieldEggCarry")
-            local HaulStatusEvent = Networking:FindFirstChild("RF/Haul/FetchWearBestStatus")
             local AskDoffTreadmill = Networking:FindFirstChild("RF/Treadmill/AskDoff")
             
             local TargetBase = DapatkanBaseSaya()
             local FolderMap = game.Workspace:FindFirstChild("EggWorld") or game.Workspace
             
-            if AskCarryEvent and HaulStatusEvent then
+            if AskCarryEvent then
                 for _, ObjekTelur in pairs(FolderMap:GetDescendants()) do
                     if not _G.AutoFarmTelur then break end
                     
@@ -159,7 +160,7 @@ task.spawn(function()
                     local EggUid = ObjekTelur:GetAttribute("Uid")
                     local SlotKey = ObjekTelur:GetAttribute("FirstAreaSlotKey")
 
-                    -- LOGIKA DETEKSI DINAMIS BIOME KE-12 (Mencocokkan nama Angels / Demons / AngelsDemons)
+                    -- Deteksi Dinamis Biome ke-12 (Angels / Demons)
                     local MapDiizinkan = false
                     if MapPilihan[AreaTelur] then
                         MapDiizinkan = true
@@ -167,11 +168,11 @@ task.spawn(function()
                         MapDiizinkan = true
                     end
 
-                    -- Validasi Akhir Sebelum Lari & Mengambil Telur
+                    -- Validasi Kelayakan Objek
                     if MapDiizinkan and RarityPilihan[RarityTelur] and EggUid and ObjekTelur:IsA("BasePart") then
                         if AskDoffTreadmill then pcall(function() AskDoffTreadmill:InvokeServer() end) end
                         
-                        -- Lari Amankan Posisi ke Telur
+                        -- Lari ke tempat telur
                         PindahHalus(ObjekTelur.CFrame)
                         task.wait(0.2)
                         
@@ -180,12 +181,15 @@ task.spawn(function()
                             SuksesAmbil = AskCarryEvent:InvokeServer({ FirstAreaSlotKey = SlotKey, Uid = EggUid })
                         end)
                         
-                        -- Jika Sukses Menggenggam, Langsung Lari Kembali ke Base Memotong Kejaran Bos!
+                        -- JIKA SUKSES MENGGENGGAM TELUR:
                         if SuksesAmbil and TargetBase then
-                            print("🚨 Telur [" .. RarityTelur .. "] Didapat! Meloloskan diri ke Base...")
+                            print("🚨 Telur Didapat! Berlari mengamankan ke Base...")
+                            
+                            -- Langkah Aman: Lari ke Base secara fisik agar menyentuh area deposit
                             PindahHalus(TargetBase.CFrame)
-                            task.wait(0.2)
-                            pcall(function() HaulStatusEvent:InvokeServer() end)
+                            
+                            -- Jeda 0.4 detik agar sistem game memproses masuknya telur secara natural via sentuhan fisik karakter
+                            task.wait(0.4) 
                             break
                         end
                     end
@@ -215,4 +219,4 @@ task.spawn(function()
     end
 end)
 
-WindUI:Notify({ Title = "RenzVex Ultimate Loaded!", Content = "Seluruh 10 Rarity dan Sistem Dynamic Biome Aktif.", Duration = 5 })
+WindUI:Notify({ Title = "RenzVex Perfect Loaded!", Content = "Menggunakan metode Bypass Sentuhan Fisik Baru.", Duration = 5 })
