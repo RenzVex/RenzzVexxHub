@@ -1,295 +1,233 @@
--- =========================================================================
---  RENZZVEXX HUB • ULTIMATE v4.3 (FULL ERROR CHECK & COMPLETE DATA)
--- =========================================================================
+-- =======================================================================
+--  RenzVex Steal An Egg - WindUI Galaxy Theme (Slider Speed Update)
+-- =======================================================================
 
-local successUI, WindUI = pcall(function()
-    return loadstring(game:HttpGet("https://raw.githubusercontent.com/Footagesus/WindUI/main/dist.lua"))()
-end)
+-- 1. LOAD WINDUI LIBRARY
+local WindUI = loadstring(game:HttpGet("https://tree-hub.xyz"))()
 
-if not successUI or not WindUI then
-    warn("Gagal memuat WindUI! Periksa koneksi internet atau executor.")
-    return
-end
-
+-- 2. CREATE WINDOW UTAMA (TEMA UNGU GALAXY)
 local Window = WindUI:CreateWindow({
-    Title = "RenzzVexx Hub • Steal an Egg",
-    Icon = "rbxassetid://4483345998",
-    Author = "Created by RenzzVexx | v4.3 Ultimate",
-    Folder = "RenzzVexxHub",
-    Size = UDim2.fromOffset(580, 460),
-    Theme = "Dark",
-    Transparent = true,
-    Acrylic = true,
+    Title = "RenzVex Steal An Egg",
+    Icon = "rbxassetid://107778070777162", -- Icon Resmi Steal An Egg
+    Author = "by RenzVex",
+    Folder = "RenzVexStealAnEgg",
+    Theme = "Dark", 
+    Accent = Color3.fromRGB(138, 43, 226), -- Ungu Galaxy Neon
 })
 
--- Global State & Configurations
-_G.AutoSteal = false
-_G.StealMethod = "Tween Smooth"
-_G.GodMode = false
-_G.AntiBoss = false
-_G.TweenSpeed = 100
-_G.SafeOffset = 3
-
--- Daftar Lengkap Semua Area / Biome (12 Tempat)
-local AllBiomes = { 
-    "Forest", "Lake", "Desert", "Jungle", "Snow", "Volcano", 
-    "Abyss Ocean", "Prehistoric", "Cosmic", "Cherry Blossom", "Titan Temple", "Angels & Demons" 
-}
-
-_G.SelectedAreas = {}
-for _, area in ipairs(AllBiomes) do
-    _G.SelectedAreas[area] = false
+-- Kustomisasi Background Galaxy Deep Purple
+if Window.Main then
+    Window.Main.BackgroundColor3 = Color3.fromRGB(14, 8, 28)
 end
 
--- Daftar Lengkap Semua Rarity Telur
-local AllRarities = { 
-    "All Rarity", "Common", "Uncommon", "Rare", "Epic", "Legendary", 
-    "Mythic", "Cosmic", "Secret", "Divine", "Luminous", "Eternal" 
-}
-_G.SelectedRarity = "All Rarity"
+-- Membuat Tab Menu
+local TabMain = Window:CreateTab({ Title = "Main Farm", Icon = "home" })
+local TabFilters = Window:CreateTab({ Title = "Filter & Areas", Icon = "settings" })
 
-_G.AutoTreadmill = false
-_G.AutoRebirth = false
-
-local Players = game:GetService("Players")
+-- =======================================================================
+-- INISIALISASI SISTEM GAME & VALIABEL GLOBAL
+-- =======================================================================
 local TweenService = game:GetService("TweenService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local LocalPlayer = Players.LocalPlayer
+local Player = game.Players.LocalPlayer
+local Character = Player.Character or Player.CharacterAdded:Wait()
+local RootPart = Character:WaitForChild("HumanoidRootPart")
 
--- =========================================================================
---  ENGINE: GODMODE & BYPASS (SAFEGUARDED)
--- =========================================================================
-local function applyGodMode(enable)
-    pcall(function()
-        local char = LocalPlayer.Character
-        local humanoid = char and char:FindFirstChildOfClass("Humanoid")
-        if not humanoid then return end
-        humanoid:SetStateEnabled(Enum.HumanoidStateType.Dead, not enable)
-        humanoid.BreakJointsOnDeath = not enable
-    end)
-end
+local Networking = game:GetService("ReplicatedStorage").Packages.Networking
+local AskCarryEvent = Networking["RF/EggWorld/AskFieldEggCarry"]
+local HaulStatusEvent = Networking["RF/Haul/FetchWearBestStatus"]
+local AskWearTreadmill = Networking["RF/Treadmill/AskWearStill"]
+local AskDoffTreadmill = Networking["RF/Treadmill/AskDoff"]
 
-local function applyAntiBoss()
-    pcall(function()
-        local enemyFolder = workspace:FindFirstChild("NPCs") or workspace:FindFirstChild("Guards") or workspace:FindFirstChild("Bosses")
-        if not enemyFolder then return end
-        for _, npc in pairs(enemyFolder:GetChildren()) do
-            local root = npc:FindFirstChild("HumanoidRootPart") or npc:FindFirstChild("PrimaryPart")
-            local hum = npc:FindFirstChildOfClass("Humanoid")
-            if root and _G.AntiBoss then
-                root.Anchored = true
-                if hum then hum.WalkSpeed = 0 end
-            elseif root and not _G.AntiBoss then
-                root.Anchored = false
-            end
-        end
-    end)
-end
+-- Status Variabel Utama
+_G.AutoFarmTelur = false
+_G.AutoTreadmillPintar = false
+_G.TweenSpeed = 135 -- Kecepatan bawaan awal (Default)
 
--- =========================================================================
---  ENGINE: MULTI-METHOD STEAL SYSTEM (ERROR-RESISTANT)
--- =========================================================================
-local function executeSteal(targetEgg)
-    if not targetEgg or not targetEgg.Parent then return end
-    
-    pcall(function()
-        local char = LocalPlayer.Character
-        local rootPart = char and char:FindFirstChild("HumanoidRootPart")
-        local humanoid = char and char:FindFirstChildOfClass("Humanoid")
-        if not rootPart or not humanoid then return end
+-- Tabel Pengaturan Filter Kelangkaan Telur
+local RarityPilihan = {
+    ["Common"]      = false,
+    ["Rare"]        = false,
+    ["Legendary"]   = true,
+    ["Mythic"]      = true,
+    ["Cosmic"]      = true,
+    ["Secret"]      = true,
+    ["Eternal"]     = true,
+    ["Divine"]      = true  -- Kelangkaan Biome Angels & Demons
+}
 
-        local eggCFrame = targetEgg:IsA("Model") and targetEgg.PrimaryPart and targetEgg.PrimaryPart.CFrame or (targetEgg:IsA("BasePart") and targetEgg.CFrame)
-        if not eggCFrame then return end
+-- Daftar 12 Biome Lengkap
+local MapPilihan = {
+    ["Forest"]          = true,
+    ["Lake"]            = true,
+    ["Desert"]          = true,
+    ["Jungle"]          = true,
+    ["Snow"]            = true,
+    ["Volcano"]         = true,
+    ["Abyss Ocean"]     = true,
+    ["Prehistoric"]     = true,
+    ["Cosmic"]          = true,
+    ["Cherry Blossom"]  = true,
+    ["Titan Temple"]    = true,
+    ["Angels"]          = true,
+    ["Demons"]          = true,
+    ["AngelsDemons"]    = true
+}
 
-        local eventsFolder = ReplicatedStorage:FindFirstChild("Events")
-        local claimRemote = eventsFolder and (eventsFolder:FindFirstChild("ClaimEgg") or eventsFolder:FindFirstChild("StealEgg"))
-
-        -- 1. Metode Tween Smooth
-        if _G.StealMethod == "Tween Smooth" then
-            local distance = (rootPart.Position - eggCFrame.Position).Magnitude
-            local duration = distance / math.clamp(_G.TweenSpeed, 40, 160)
-            
-            local tween = TweenService:Create(rootPart, TweenInfo.new(duration, Enum.EasingStyle.Linear), {
-                CFrame = eggCFrame * CFrame.new(0, _G.SafeOffset, 0)
-            })
-            tween:Play()
-            tween.Completed:Wait()
-            task.wait(0.05)
-
-            if claimRemote then claimRemote:FireServer(targetEgg) end
-            task.wait(0.08)
-
-            local baseFolder = workspace:FindFirstChild("Bases") or workspace:FindFirstChild("PlayerBases")
-            local myBase = baseFolder and (baseFolder:FindFirstChild(LocalPlayer.Name) or baseFolder:FindFirstChild("Base"))
-            local baseTarget = myBase and (myBase.PrimaryPart and myBase.PrimaryPart.CFrame or myBase.CFrame) or CFrame.new(0, 10, 0)
-
-            local retDist = (rootPart.Position - baseTarget.Position).Magnitude
-            local retTween = TweenService:Create(rootPart, TweenInfo.new(retDist / _G.TweenSpeed, Enum.EasingStyle.Linear), {
-                CFrame = baseTarget * CFrame.new(0, 3, 0)
-            })
-            retTween:Play()
-            retTween.Completed:Wait()
-
-        -- 2. Metode Chicken Knockback
-        elseif _G.StealMethod == "Chicken Knockback" then
-            local enemyFolder = workspace:FindFirstChild("NPCs") or workspace:FindFirstChild("Guards")
-            local nearestGuard, shortest = nil, math.huge
-            if enemyFolder then
-                for _, guard in pairs(enemyFolder:GetChildren()) do
-                    local gRoot = guard:FindFirstChild("HumanoidRootPart") or guard:FindFirstChild("PrimaryPart")
-                    if gRoot then
-                        local d = (rootPart.Position - gRoot.Position).Magnitude
-                        if d < shortest then shortest = d; nearestGuard = gRoot end
-                    end
-                end
-            end
-
-            if nearestGuard and shortest < 35 then
-                rootPart.CFrame = nearestGuard.CFrame * CFrame.new(0, 0, 2)
-                task.wait(0.1)
-            end
-
-            rootPart.AssemblyLinearVelocity = Vector3.new(0, 50, 0)
-            rootPart.CFrame = eggCFrame * CFrame.new(0, _G.SafeOffset, 0)
-            task.wait(0.05)
-
-            if claimRemote then claimRemote:FireServer(targetEgg) end
-            task.wait(0.1)
-
-        -- 3. Metode Direct Remote Only
-        elseif _G.StealMethod == "Direct Remote Only" then
-            if claimRemote then claimRemote:FireServer(targetEgg) end
-            task.wait(0.2)
-        end
-    end)
-end
-
--- =========================================================================
---  BACKGROUND AUTOMATION LOOPS
--- =========================================================================
-task.spawn(function()
-    while true do
-        task.wait(0.3)
-        if _G.AutoSteal then
-            pcall(function()
-                local mapFolder = workspace:FindFirstChild("Eggs") or workspace:FindFirstChild("Map")
-                if mapFolder then
-                    for areaName, isEnabled in pairs(_G.SelectedAreas) do
-                        if isEnabled and _G.AutoSteal then
-                            local targetBiome = mapFolder:FindFirstChild(areaName) or mapFolder
-                            for _, egg in pairs(targetBiome:GetDescendants()) do
-                                if not _G.AutoSteal then break end
-                                if egg and (egg:IsA("BasePart") or egg:IsA("Model")) and egg.Name:lower():find("egg") then
-                                    local eggName = egg.Name:lower()
-                                    local filter = _G.SelectedRarity:lower()
-                                    local isValidRarity = (filter == "all rarity") or eggName:find(filter)
-                                    
-                                    if isValidRarity then
-                                        executeSteal(egg)
-                                        task.wait(1.0)
-                                    end
-                                end
-                            end
-                        end
-                    end
-                end
-            end)
-        end
+-- Fungsi Deteksi Tempat Taruh Telur di Base Sendiri
+local function DapatkanBaseSaya()
+    local BaseSaya = game.Workspace.Bases:FindFirstChild(Player.Name)
+    if BaseSaya then
+        return BaseSaya:FindFirstChild("DepositPart") or BaseSaya:FindFirstChild("EggPen") or BaseSaya
     end
-end)
+    return nil
+end
 
-task.spawn(function()
-    while true do
-        task.wait(0.2)
-        if _G.AntiBoss then pcall(applyAntiBoss) end
-        if _G.AutoTreadmill then
-            pcall(function()
-                local rem = ReplicatedStorage:FindFirstChild("Events") and ReplicatedStorage.Events:FindFirstChild("TrainTreadmill")
-                if rem then rem:FireServer() end
-            end)
+-- Fungsi Gerakan Lari Cepat Menggunakan Variabel Dinamis _G.TweenSpeed
+local function PindahHalus(TargetCFrame)
+    local Jarak = (RootPart.Position - TargetCFrame.Position).Magnitude
+    local Durasi = Jarak / _G.TweenSpeed -- Otomatis berubah mengikuti Slider UI
+    local InfoTween = TweenInfo.new(Durasi, Enum.EasingStyle.Linear)
+    local Animasi = TweenService:Create(RootPart, InfoTween, {CFrame = TargetCFrame})
+    Animasi:Play()
+    Animasi.Completed:Wait()
+end
+
+-- =======================================================================
+-- TAB 1: MAIN FARM (KONTROL UTAMA & SLIDER SPEED)
+-- =======================================================================
+TabMain:CreateParagraph({ Title = "🌌 Welcome to RenzVex Hub", Desc = "Otomatisasi penuh untuk game Steal An Egg versi Mobile." })
+
+TabMain:CreateToggle({
+    Title = "Auto Steal & Deposit",
+    Desc = "Mencari telur pilihan, lari via Tween, lalu drop otomatis di base.",
+    Default = false,
+    Callback = function(Value)
+        _G.AutoFarmTelur = Value
+        if Value then
+            print("[RenzVex] Auto Steal Dinyalakan!")
         end
-        if _G.AutoRebirth then
-            pcall(function()
-                local rem = ReplicatedStorage:FindFirstChild("Events") and ReplicatedStorage.Events:FindFirstChild("Rebirth")
-                if rem then rem:FireServer() end
-            end)
-        end
-    end
-end)
-
--- =========================================================================
---  WIND UI TABS & COMPONENTS SETUP
--- =========================================================================
-
-local TabMain = Window:Tab({ Title = "Main Farm", Icon = "home" })
-local TabFilter = Window:Tab({ Title = "Multi-Area & Filters", Icon = "filter" })
-local TabMisc = Window:Tab({ Title = "Misc & Stats", Icon = "settings" })
-
--- Main Farm Tab
-TabMain:Toggle({
-    Title = "Auto Steal Egg",
-    Desc = "Aktifkan otomatisasi pencurian telur dari semua area terpilih",
-    Value = false,
-    Callback = function(state) _G.AutoSteal = state end
-})
-
-TabMain:Toggle({
-    Title = "God Mode (Anti-Death)",
-    Desc = "Mencegah karakter mati saat mengambil telur",
-    Value = false,
-    Callback = function(state) 
-        _G.GodMode = state
-        applyGodMode(state)
     end
 })
 
-TabMain:Toggle({
-    Title = "Anti-Boss / Guard Freeze",
-    Desc = "Membekukan pergerakan NPC/Ayam penjaga",
-    Value = false,
-    Callback = function(state) _G.AntiBoss = state end
+TabMain:CreateToggle({
+    Title = "Auto Treadmill (Smart Grind)",
+    Desc = "Berlatih menambah Speed otomatis jika sedang tidak membawa telur.",
+    Default = false,
+    Callback = function(Value)
+        _G.AutoTreadmillPintar = Value
+    end
 })
 
--- Multi-Area & Filters Tab
-TabFilter:Dropdown({
-    Title = "Pilih Metode Steal",
-    Desc = "Pilih cara kerja pergerakan saat mengambil telur",
-    Values = { "Tween Smooth", "Chicken Knockback", "Direct Remote Only" },
-    Default = "Tween Smooth",
-    Callback = function(selected) _G.StealMethod = selected end
+-- FITUR BARU: Slider untuk Mengatur Kecepatan Gerakan Tween Lari
+TabMain:CreateSlider({
+    Title = "⚡ Tween Movement Speed",
+    Desc = "Sesuaikan kecepatan lari karakter untuk menghindari Bos atau Anti-Cheat.",
+    Min = 50,
+    Max = 300,
+    Default = _G.TweenSpeed,
+    Callback = function(Value)
+        _G.TweenSpeed = Value
+        print("[RenzVex] Kecepatan Tween diatur ke: " .. Value)
+    end
 })
 
-TabFilter:Dropdown({
-    Title = "Filter Rarity Telur",
-    Desc = "Pilih kelangkaan telur yang ingin dicuri",
-    Values = AllRarities,
-    Default = "All Rarity",
-    Callback = function(selected) _G.SelectedRarity = selected end
-})
+-- =======================================================================
+-- TAB 2: FILTER & AREAS (PILIHAN CUSTOM)
+-- =======================================================================
+TabFilters:CreateParagraph({ Title = "✨ Filter Kelangkaan Telur", Desc = "Aktifkan kelangkaan telur yang ingin kamu incar." })
 
--- Render Toggle Otomatis untuk Seluruh 12 Area / Biome
-for _, areaName in ipairs(AllBiomes) do
-    TabFilter:Toggle({
-        Title = "Farm Area: " .. areaName,
-        Desc = "Centang untuk mengaktifkan pencurian di " .. areaName,
-        Value = false,
-        Callback = function(state)
-            _G.SelectedAreas[areaName] = state
+for RarityName, _ in pairs(RarityPilihan) do
+    TabFilters:CreateToggle({
+        Title = "Ambil " .. RarityName,
+        Default = RarityPilihan[RarityName],
+        Callback = function(Value)
+            RarityPilihan[RarityName] = Value
         end
     })
 end
 
--- Misc & Stats Tab
-TabMisc:Toggle({
-    Title = "Auto Treadmill (Train)",
-    Value = false,
-    Callback = function(state) _G.AutoTreadmill = state end
-})
+TabFilters:CreateParagraph({ Title = "🗺️ Filter Pemindaian Map (12 Biome)", Desc = "Pilih area mana saja yang ingin dipindai oleh karaktermu." })
 
-TabMisc:Toggle({
-    Title = "Auto Rebirth",
-    Value = false,
-    Callback = function(state) _G.AutoRebirth = state end
-})
+for MapName, _ in pairs(MapPilihan) do
+    TabFilters:CreateToggle({
+        Title = "Scan di Map: " .. MapName,
+        Default = MapPilihan[MapName],
+        Callback = function(Value)
+            MapPilihan[MapName] = Value
+        end
+    })
+end
 
-Window:SelectTab(1)
+-- =======================================================================
+-- SISTEM UTAMA BACKEND BACKGROUND PROCESSES
+-- =======================================================================
+-- Thread Loop 1: Proses Auto Steal & Bawa ke Base
+task.spawn(function()
+    while true do
+        task.wait(0.5)
+        if _G.AutoFarmTelur then
+            local TargetBase = DapatkanBaseSaya()
+            local FolderMap = game.Workspace:FindFirstChild("EggWorld") or game.Workspace
+            
+            for _, ObjekTelur in pairs(FolderMap:GetDescendants()) do
+                if not _G.AutoFarmTelur then break end
+                
+                local AreaTelur = ObjekTelur:GetAttribute("AreaId") or ObjekTelur.Name
+                local RarityTelur = ObjekTelur:GetAttribute("Rarity") or "Unknown"
+                local EggUid = ObjekTelur:GetAttribute("Uid")
+                local SlotKey = ObjekTelur:GetAttribute("FirstAreaSlotKey")
+
+                if MapPilihan[AreaTelur] and RarityPilihan[RarityTelur] and EggUid and ObjekTelur:IsA("BasePart") then
+                    AskDoffTreadmill:InvokeServer()
+                    
+                    -- Langkah 1: Otw lari ke Sarang Telur
+                    PindahHalus(ObjekTelur.CFrame)
+                    task.wait(0.2)
+                    
+                    -- Langkah 2: Mengirim Sinyal Ambil
+                    local SuksesAmbil = AskCarryEvent:InvokeServer({
+                        FirstAreaSlotKey = SlotKey,
+                        Uid = EggUid
+                    })
+                    
+                    -- Langkah 3: Jika Berhasil, Lari ke Base untuk Menaruh Telur
+                    if SuksesAmbil and TargetBase then
+                        PindahHalus(TargetBase.CFrame)
+                        task.wait(0.2)
+                        
+                        -- Mengirim Sinyal Taruh Barang Bawaan
+                        HaulStatusEvent:InvokeServer()
+                        break
+                    end
+                end
+            end
+        end
+    end
+end)
+
+-- Thread Loop 2: Proses Auto Treadmill
+task.spawn(function()
+    while true do
+        task.wait(1)
+        if _G.AutoTreadmillPintar then
+            if _G.AutoFarmTelur == false then 
+                AskWearTreadmill:InvokeServer()
+                task.wait(5)
+                AskDoffTreadmill:InvokeServer()
+                task.wait(1)
+            elseif _G.AutoFarmTelur and not Character:FindFirstChild("EggCarried") then
+                AskWearTreadmill:InvokeServer()
+                task.wait(5)
+                AskDoffTreadmill:InvokeServer()
+                task.wait(1)
+            end
+        end
+    end
+end)
+
+-- NOTIFIKASI TANDA SUKSES LOAD DI HP
+WindUI:Notify({
+    Title = "RenzVex Script Loaded!",
+    Content = "Slider Speed & Tema Galaxy Siap Digunakan.",
+    Duration = 5
+})
